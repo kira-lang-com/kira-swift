@@ -118,10 +118,27 @@ function graphics_on_cleanup() {
     return
 }
 
+@Doc("Native resize hook used by embedded Apple runtimes.
+The generated platform bootstrap forwards concrete drawable dimensions through this function.
+Scenes receive integer pixel sizes without needing to decode platform event structs in Kira code.")
+function graphics_on_resize(width: Int, height: Int) {
+    graphicsScene.onResize(width: width, height: height)
+    return
+}
+
 @Doc("Native event hook invoked by the platform bridge.
 The current implementation forwards a simplified resize notification to the scene.
 This is a temporary placeholder until fuller event decoding is implemented.")
 function graphics_on_event(event: CPointer<sapp_event>) {
     graphicsScene.onResize(width: 0, height: 0)
+    return
+}
+
+@Doc("Reload hook invoked after the hosted Kira VM has been recreated inside an already-running native app.
+Rebinds the active scene to the live graphics backend without restarting the native shell.
+This keeps hot reload deterministic while preserving host-owned graphics state.")
+function graphics_on_reload() {
+    graphicsDevice = GraphicsDevice(backend: sg_query_backend())
+    graphicsScene.onLoad(device: graphicsDevice)
     return
 }

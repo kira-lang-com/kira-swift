@@ -24,8 +24,7 @@ type RenderEncoder {
     The primitive parameter is kept for API clarity even though native topology comes from the pipeline.")
     function draw(primitive: Primitive, count: Int) {
         sg_apply_pipeline(pip: pipeline.handle)
-        let bindings = sg_bindings(vertex_buffers: CArray8_sg_buffer(_0: vertex0.handle))
-        sg_apply_bindings(bindings: bindings)
+        kira_sg_apply_vertex_buffer(buffer: vertex0.handle)
         sg_draw(base_element: 0, num_elements: count, num_instances: 1)
         return
     }

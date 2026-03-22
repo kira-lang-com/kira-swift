@@ -2853,13 +2853,13 @@ extern function sokol_main(argc: CInt32, argv: CPointer<CPointer<CInt8>>) -> sap
 extern function sapp_isvalid() -> CBool
 
 @ffi(lib: "")
-extern function sapp_width() -> CBool
+extern function sapp_width() -> CInt32
 
 @ffi(lib: "")
 extern function sapp_widthf() -> CFloat
 
 @ffi(lib: "")
-extern function sapp_height() -> CBool
+extern function sapp_height() -> CInt32
 
 @ffi(lib: "")
 extern function sapp_heightf() -> CFloat
@@ -3466,5 +3466,12 @@ extern function sglue_environment() -> sg_environment
 
 @ffi(lib: "")
 extern function sglue_swapchain() -> sg_swapchain
+
 @ffi(lib: "")
 extern function kira_sg_setup() -> CVoid
+
+@ffi(lib: "")
+extern function kira_sg_begin_default_pass(clearEnabled: CBool, r: CFloat, g: CFloat, b: CFloat, a: CFloat, label: CPointer<CInt8>) -> CVoid
+
+@ffi(lib: "")
+extern function kira_sg_apply_vertex_buffer(buffer: sg_buffer) -> CVoid

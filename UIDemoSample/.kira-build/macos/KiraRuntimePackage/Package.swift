@@ -16,8 +16,12 @@ let package = Package(
             path: "Sources/Clibffi"
         ),
         .target(
+            name: "KiraDebugRuntime",
+            path: "Sources/KiraDebugRuntime"
+        ),
+        .target(
             name: "KiraVM",
-            dependencies: ["Clibffi"],
+            dependencies: ["Clibffi", "KiraDebugRuntime"],
             path: "Sources/KiraVM"
         ),
     ]
