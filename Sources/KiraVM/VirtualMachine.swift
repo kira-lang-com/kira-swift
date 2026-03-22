@@ -318,10 +318,15 @@ public final class VirtualMachine: @unchecked Sendable {
                      .load_field, .store_field,
                      .jump, .jump_if_true, .jump_if_false, .jump_if_nil,
                      .call_native, .new_object,
+                     .match_enum,
                      .fiber_new, .unwrap_or_jump, .line_number:
                     ip += 2
                 case .new_typed_object:
                     ip += 4
+                case .make_enum:
+                    ip += 3
+                case .get_enum_field:
+                    ip += 1
                 case .call_protocol_method:
                     ip += 3
                 case .make_ffi_array:
@@ -680,6 +685,47 @@ public final class VirtualMachine: @unchecked Sendable {
                         fields: Array(repeating: .nil_, count: max(0, fieldCount))
                     ))
                     fiber.operandStack.push(.reference(ref))
+                case .make_enum:
+                    let tag = Int64(try readU16(fn, &current))
+                    let valueCount = Int(try readU8(fn, &current))
+                    var fields: [KiraValue] = Array(repeating: .nil_, count: valueCount + 1)
+                    for index in stride(from: valueCount - 1, through: 0, by: -1) {
+                        fields[index + 1] = fiber.operandStack.pop()
+                    }
+                    fields[0] = .int(tag)
+                    let ref = heap.allocate(KiraObject(
+                        type: KiraTypeDescriptor(name: "Enum", fieldCount: fields.count),
+                        fields: fields
+                    ))
+                    fiber.operandStack.push(.reference(ref))
+                case .match_enum:
+                    let tag = Int64(try readU16(fn, &current))
+                    let value = fiber.operandStack.pop()
+                    switch value {
+                    case .int(let intValue):
+                        fiber.operandStack.push(.bool(intValue == tag))
+                    case .reference(let ref):
+                        let object = try heap.get(ref)
+                        if let first = object.fields.first, case .int(let storedTag) = first {
+                            fiber.operandStack.push(.bool(storedTag == tag))
+                        } else {
+                            fiber.operandStack.push(.bool(false))
+                        }
+                    default:
+                        fiber.operandStack.push(.bool(false))
+                    }
+                case .get_enum_field:
+                    let index = Int(try readU8(fn, &current))
+                    let value = fiber.operandStack.pop()
+                    guard case .reference(let ref) = value else {
+                        throw VMError.typeError(expected: "Enum", got: value)
+                    }
+                    let object = try heap.get(ref)
+                    let fieldIndex = index + 1
+                    guard fieldIndex < object.fields.count else {
+                        throw VMError.invalidBytecode("enum field index out of bounds: \(index)")
+                    }
+                    fiber.operandStack.push(object.fields[fieldIndex])
                 case .make_ffi_array:
                     try executeMakeFFIArray(fn: fn, frame: &current, fiber: fiber)
                 case .new_array:

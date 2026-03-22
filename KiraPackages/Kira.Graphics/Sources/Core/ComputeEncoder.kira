@@ -1,3 +1,5 @@
-@Doc("Encodes compute pass commands.")
+@Doc("Placeholder encoder for compute workloads.
+The type exists so future compute APIs can land without changing the surrounding package shape.
+The first graphics slice keeps it empty because compute recording is not implemented yet.")
 type ComputeEncoder {
 }

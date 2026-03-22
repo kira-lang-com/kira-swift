@@ -1,0 +1,35 @@
+@Doc("Records GPU commands for the current frame.
+Create a command buffer from `Frame.encode()` and use it to begin passes and present work.
+The buffer is short-lived and intended to be consumed entirely within a single frame callback.")
+type CommandBuffer {
+    @Doc("Begin a render pass using the supplied descriptor.
+    The descriptor controls whether the pass clears or loads the current target contents.
+    Returns a `RenderEncoder` that can bind resources and issue draw calls for the pass.")
+    function render(descriptor: RenderPassDescriptor) -> RenderEncoder {
+        let load_action = descriptor.clearEnabled ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD
+        let clear = sg_color(
+            r: descriptor.clearColor.r,
+            g: descriptor.clearColor.g,
+            b: descriptor.clearColor.b,
+            a: descriptor.clearColor.a)
+        let color_action = sg_color_attachment_action(
+            load_action: load_action,
+            store_action: SG_STOREACTION_STORE,
+            clear_value: clear)
+        let pass = sg_pass(
+            action: sg_pass_action(colors: CArray8_sg_color_attachment_action(_0: color_action)),
+            swapchain: sglue_swapchain(),
+            label: descriptor.label)
+        sg_begin_pass(pass: pass)
+        return RenderEncoder()
+    }
+
+    @Doc("End the active pass and submit recorded work to the backend.
+    This closes the current pass and commits the command stream for presentation.
+    Call once after all draws for the frame have been encoded.")
+    function present() {
+        sg_end_pass()
+        sg_commit()
+        return
+    }
+}

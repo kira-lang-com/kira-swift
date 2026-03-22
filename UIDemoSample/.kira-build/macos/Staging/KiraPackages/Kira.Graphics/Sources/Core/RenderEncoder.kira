@@ -1,0 +1,32 @@
+@Doc("Encodes draw calls inside an active render pass.
+Assign pipeline state and vertex buffers on the encoder before calling `draw`.
+The current implementation intentionally exposes a minimal subset of the eventual rendering API.")
+type RenderEncoder {
+    @Doc("Pipeline used by subsequent draw calls.
+    Assign this before drawing so the backend knows which shaders and fixed state to use.
+    Defaults to an empty placeholder pipeline until configured.")
+    var pipeline: RenderPipeline = RenderPipeline()
+    @Doc("Primary vertex buffer bound for drawing.
+    The first render slice supports one vertex stream and stores it here.
+    Use `setVertex(buffer:slot:)` to update the active buffer before drawing.")
+    var vertex0: Buffer = Buffer()
+
+    @Doc("Bind a vertex buffer for upcoming draw calls.
+    Only slot zero is currently honored by the implementation.
+    The API keeps the slot parameter so future versions can add multiple streams cleanly.")
+    function setVertex(buffer: Buffer, slot: Int) {
+        vertex0 = buffer
+        return
+    }
+
+    @Doc("Issue a draw call with the currently bound pipeline and vertex buffer.
+    `count` becomes the element count for a single-instance draw.
+    The primitive parameter is kept for API clarity even though native topology comes from the pipeline.")
+    function draw(primitive: Primitive, count: Int) {
+        sg_apply_pipeline(pip: pipeline.handle)
+        let bindings = sg_bindings(vertex_buffers: CArray8_sg_buffer(_0: vertex0.handle))
+        sg_apply_bindings(bindings: bindings)
+        sg_draw(base_element: 0, num_elements: count, num_instances: 1)
+        return
+    }
+}

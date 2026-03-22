@@ -83,6 +83,9 @@ public enum Instruction: UInt8, Sendable {
     case array_slice = 0x94
     case make_ffi_array = 0x95
     case new_typed_object = 0x96 // operands: UInt16 typeName, UInt16 fieldCount
+    case make_enum = 0x97 // operands: UInt16 tag, UInt8 valueCount
+    case match_enum = 0x98 // operand: UInt16 tag
+    case get_enum_field = 0x99 // operand: UInt8 field index
 
     // String operations
     case string_concat = 0xA0

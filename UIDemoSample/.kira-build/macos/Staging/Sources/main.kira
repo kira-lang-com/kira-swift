@@ -1,0 +1,149 @@
+import Kira.Foundation
+import Kira.Graphics
+
+@Doc("Build the card widget rendered by the visual Foundation sample.
+The card combines a colored background with a short vertical stack of placeholder text.
+It keeps layout simple and deterministic while still exercising real draw-list output.")
+function buildCard() -> Widget {
+    let content = VStack(
+        items: [
+            Text(value: "Kira Foundation", color: Color.white),
+            Text(value: "Scene-driven UI rendered through Kira.Graphics.", color: Color(r: 0.82, g: 0.87, b: 0.94, a: 1.0)),
+            Text(value: "This sample proves layout, draw-list generation, and GPU submission.", color: Color(r: 0.68, g: 0.76, b: 0.88, a: 1.0))
+        ],
+        spacing: 14.0,
+        alignment: CrossAlignment.Start,
+        descriptor: LayoutDescriptor(
+            width: SizeMode.Hug,
+            height: SizeMode.Hug,
+            arrange: ArrangeMode.Stack(axis: Axis.Vertical, spacing: 14.0, alignment: CrossAlignment.Start),
+            padding: EdgeInsets.all(value: 28.0),
+            margin: EdgeInsets.zero,
+            position: PositionMode.Relative,
+            x: 0.0,
+            y: 0.0,
+            zIndex: 0,
+            clipContent: false))
+    return Box(
+        color: Color(r: 0.14, g: 0.18, b: 0.24, a: 1.0),
+        cornerRadius: 18.0,
+        items: [content],
+        descriptor: LayoutDescriptor(
+            width: SizeMode.Hug,
+            height: SizeMode.Hug,
+            arrange: ArrangeMode.Stack(axis: Axis.Vertical, spacing: 0.0, alignment: CrossAlignment.Start),
+            padding: EdgeInsets.zero,
+            margin: EdgeInsets.zero,
+            position: PositionMode.Relative,
+            x: 0.0,
+            y: 0.0,
+            zIndex: 0,
+            clipContent: false))
+}
+
+@Doc("Build the widget tree used by the visual Foundation sample.
+The root widget fills the viewport, paints a dark background, and hosts a single feature card.
+This structure keeps the sample visually obvious while staying inside the current stable layout subset.")
+function buildRoot() -> Widget {
+    return Box(
+        color: Color(r: 0.05, g: 0.07, b: 0.11, a: 1.0),
+        cornerRadius: 0.0,
+        items: [
+            Box(
+                color: Color.clear,
+                cornerRadius: 0.0,
+                items: [buildCard()],
+                descriptor: LayoutDescriptor(
+                    width: SizeMode.Hug,
+                    height: SizeMode.Hug,
+                    arrange: ArrangeMode.Overlay(alignment: Alignment.Center),
+                    padding: EdgeInsets.zero,
+                    margin: EdgeInsets.zero,
+                    position: PositionMode.Relative,
+                    x: 0.0,
+                    y: 0.0,
+                    zIndex: 0,
+                    clipContent: false))
+        ],
+        descriptor: LayoutDescriptor(
+            width: SizeMode.Fill,
+            height: SizeMode.Fill,
+            arrange: ArrangeMode.Overlay(alignment: Alignment.Center),
+            padding: EdgeInsets.all(value: 36.0),
+            margin: EdgeInsets.zero,
+            position: PositionMode.Relative,
+            x: 0.0,
+            y: 0.0,
+            zIndex: 0,
+            clipContent: false))
+}
+
+@Doc("Scene that owns the Foundation runtime and the draw-list renderer for the sample app.
+It rebuilds a small widget tree each frame, converts it into draw commands, and submits the result to the swapchain.
+The scene stays intentionally small so it is easy to use as a starting point for real projects.")
+type UIDemoScene: Scene {
+    @Doc("Foundation entry point used to measure widgets, dispatch input, and build draw lists.")
+    var ui: UIFoundation = UIFoundation()
+    @Doc("Renderer that translates Foundation draw commands into graphics draws.")
+    var renderer: DrawListRenderer = DrawListRenderer()
+    @Doc("Current drawable width tracked in Foundation's `Float` coordinate space.
+    It starts at the sample window width and is refreshed from resize callbacks.
+    The scene uses it to build layout and rendering bounds each frame.")
+    var viewportWidth: Float = 960.0
+    @Doc("Current drawable height tracked in Foundation's `Float` coordinate space.
+    It starts at the sample window height and is refreshed from resize callbacks.
+    The scene uses it to build layout and rendering bounds each frame.")
+    var viewportHeight: Float = 640.0
+
+    @Doc("Receive the live graphics device once the application has started.
+    The sample stores it on the draw-list renderer so pipelines and buffers can be created lazily.
+    No other long-lived GPU resources are needed for this minimal scene.")
+    function onLoad(device: GraphicsDevice) {
+        renderer.device = device
+        return
+    }
+
+    @Doc("Render one frame of the Foundation sample UI.
+    The scene rebuilds the widget tree, asks Foundation for a draw list, then submits it through one render pass.
+    A dark clear color is used so the card and placeholder text are easy to see.")
+    function onFrame(frame: Frame) {
+        let bounds = Rect(x: 0.0, y: 0.0, width: viewportWidth, height: viewportHeight)
+        let drawList = ui.update(root: buildRoot(), bounds: bounds, input: InputState.empty)
+        let commandBuffer = frame.encode()
+        let passDescriptor = frame.defaultPass.withClear(color: Color(r: 0.03, g: 0.04, b: 0.07, a: 1.0))
+        let encoder = commandBuffer.render(descriptor: passDescriptor)
+        renderer.render(drawList: drawList, encoder: encoder, viewport: bounds)
+        commandBuffer.present()
+        return
+    }
+
+    @Doc("Respond to drawable-size changes from the host platform.
+    The callback stores the latest size using Foundation's `Float` coordinate type.
+    Subsequent frames use these values for both layout and draw-list rendering.
+    This keeps the sample responsive to live window resizing.")
+    function onResize(width: Int, height: Int) {
+        viewportWidth = Float(width)
+        viewportHeight = Float(height)
+        return
+    }
+
+    @Doc("Release sample scene resources before shutdown.
+    The current scene relies on Foundation and Graphics values that clean themselves up with the process.
+    The callback remains in place so the sample matches real scene structure.")
+    function onUnload() {
+        return
+    }
+}
+
+@Doc("Launch the visual Foundation sample application.
+Creates a graphics-backed application window and installs the sample scene as the active content.
+Use `kira build --target macos` to generate and build the native project for this sample.")
+function main() {
+    let app = Application() {
+        title = "Kira Foundation Demo"
+        width = 960
+        height = 640
+    }
+    app.run(scene: UIDemoScene())
+    return
+}
